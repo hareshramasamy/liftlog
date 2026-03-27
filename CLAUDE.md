@@ -29,6 +29,7 @@ This is a **Next.js 16** app using the **App Router** with **React 19** and **Ta
 Before generating any code, always refer to the relevant docs file in the `/docs` directory first. These documents define the standards that all generated code must follow.
 
 - `/docs/ui.md` — UI component and date formatting standards
+- `/docs/data-fetching.md` — Data fetching rules: server components only, Drizzle ORM via `/data` helpers, user-scoped queries
 
 ## Key differences from standard Next.js
 
