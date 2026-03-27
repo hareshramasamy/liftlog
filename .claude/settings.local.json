@@ -7,7 +7,8 @@
       "mcp__neon__describe_table_schema",
       "Bash(git checkout:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git merge:*)"
     ]
   },
   "enabledMcpjsonServers": [
