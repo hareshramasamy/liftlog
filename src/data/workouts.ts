@@ -2,6 +2,53 @@ import { db } from '@/db';
 import { exercisesCatalog, sets, workoutExercises, workouts } from '@/db/schema';
 import { and, eq, gte, lt } from 'drizzle-orm';
 
+type NewSet = {
+  setNumber: number;
+  reps: number;
+  weightKg: string;
+};
+
+type NewExercise = {
+  exerciseId: string;
+  order: number;
+  sets: NewSet[];
+};
+
+export async function createWorkoutWithExercisesAndSets(
+  userId: string,
+  name: string,
+  exercises: NewExercise[],
+) {
+  const [workout] = await db
+    .insert(workouts)
+    .values({ userId, name })
+    .returning();
+
+  for (const exercise of exercises) {
+    const [workoutExercise] = await db
+      .insert(workoutExercises)
+      .values({
+        workoutId: workout.id,
+        exerciseId: exercise.exerciseId,
+        order: exercise.order,
+      })
+      .returning();
+
+    if (exercise.sets.length > 0) {
+      await db.insert(sets).values(
+        exercise.sets.map((s) => ({
+          workoutExerciseId: workoutExercise.id,
+          setNumber: s.setNumber,
+          reps: s.reps,
+          weightKg: s.weightKg,
+        })),
+      );
+    }
+  }
+
+  return workout;
+}
+
 export async function getWorkoutsForUserByDate(userId: string, date: Date) {
   const startOfDay = new Date(date);
   startOfDay.setHours(0, 0, 0, 0);
