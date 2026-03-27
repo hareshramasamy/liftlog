@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { exercisesCatalog, sets, workoutExercises, workouts } from '@/db/schema';
-import { and, eq, gte, lt } from 'drizzle-orm';
+import { and, asc, eq, gte, lt } from 'drizzle-orm';
 
 type NewSet = {
   setNumber: number;
@@ -47,6 +47,96 @@ export async function createWorkoutWithExercisesAndSets(
   }
 
   return workout;
+}
+
+export async function getWorkoutById(userId: string, workoutId: string) {
+  const [workout] = await db
+    .select()
+    .from(workouts)
+    .where(and(eq(workouts.id, workoutId), eq(workouts.userId, userId)));
+
+  if (!workout) return null;
+
+  const rows = await db
+    .select({
+      workoutExerciseId: workoutExercises.id,
+      workoutExerciseOrder: workoutExercises.order,
+      exerciseId: exercisesCatalog.id,
+      exerciseName: exercisesCatalog.name,
+      setNumber: sets.setNumber,
+      reps: sets.reps,
+      weightKg: sets.weightKg,
+    })
+    .from(workoutExercises)
+    .innerJoin(exercisesCatalog, eq(exercisesCatalog.id, workoutExercises.exerciseId))
+    .innerJoin(sets, eq(sets.workoutExerciseId, workoutExercises.id))
+    .where(eq(workoutExercises.workoutId, workoutId))
+    .orderBy(asc(workoutExercises.order), asc(sets.setNumber));
+
+  const exerciseMap = new Map<
+    string,
+    { id: string; exerciseId: string; name: string; sets: { setNumber: number; reps: number | null; weightKg: string | null }[] }
+  >();
+
+  for (const row of rows) {
+    if (!exerciseMap.has(row.workoutExerciseId)) {
+      exerciseMap.set(row.workoutExerciseId, {
+        id: row.workoutExerciseId,
+        exerciseId: row.exerciseId,
+        name: row.exerciseName,
+        sets: [],
+      });
+    }
+    exerciseMap.get(row.workoutExerciseId)!.sets.push({
+      setNumber: row.setNumber,
+      reps: row.reps,
+      weightKg: row.weightKg,
+    });
+  }
+
+  return {
+    ...workout,
+    exercises: Array.from(exerciseMap.values()),
+  };
+}
+
+export async function updateWorkout(
+  userId: string,
+  workoutId: string,
+  name: string,
+  exercises: NewExercise[],
+) {
+  // Verify ownership and update name
+  await db
+    .update(workouts)
+    .set({ name, updatedAt: new Date() })
+    .where(and(eq(workouts.id, workoutId), eq(workouts.userId, userId)));
+
+  // Delete existing exercises — cascades to sets via ON DELETE CASCADE
+  await db.delete(workoutExercises).where(eq(workoutExercises.workoutId, workoutId));
+
+  // Re-insert exercises and sets
+  for (const exercise of exercises) {
+    const [workoutExercise] = await db
+      .insert(workoutExercises)
+      .values({
+        workoutId,
+        exerciseId: exercise.exerciseId,
+        order: exercise.order,
+      })
+      .returning();
+
+    if (exercise.sets.length > 0) {
+      await db.insert(sets).values(
+        exercise.sets.map((s) => ({
+          workoutExerciseId: workoutExercise.id,
+          setNumber: s.setNumber,
+          reps: s.reps,
+          weightKg: s.weightKg,
+        })),
+      );
+    }
+  }
 }
 
 export async function getWorkoutsForUserByDate(userId: string, date: Date) {

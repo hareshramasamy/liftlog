@@ -32,6 +32,7 @@ Before generating any code, always refer to the relevant docs file in the `/docs
 - `/docs/data-fetching.md` — Data fetching rules: server components only, Drizzle ORM via `/data` helpers, user-scoped queries
 - `/docs/data-mutations.md` — Data mutation rules: Server Actions via colocated `actions.ts`, Zod validation, typed params, no FormData
 - `/docs/auth.md` — Authentication standards: Clerk only, how to get the current user, UI components, route protection
+- `/docs/routing.md` — Routing standards: all routes under /dashboard, middleware-based protection via Clerk
 
 ## Key differences from standard Next.js
 
