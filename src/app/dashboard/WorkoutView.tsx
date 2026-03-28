@@ -3,28 +3,17 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, ChevronRightIcon, ClockIcon, PlusIcon } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-type Set = {
-  setNumber: number;
-  reps: number | null;
-  weightKg: string | null;
-};
-
-type Exercise = {
-  id: string;
-  name: string;
-  sets: Set[];
-};
+import { Card, CardContent } from '@/components/ui/card';
 
 type Workout = {
   id: string;
   name: string | null;
-  exercises: Exercise[];
+  createdAt: Date;
 };
 
 type Props = {
@@ -43,13 +32,35 @@ export default function WorkoutView({ workouts, selectedDate }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Dashboard
+    <div className="mx-auto w-[55%] py-12">
+      {/* Page heading */}
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+          Workout Dashboard
         </h1>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          Track and review your training sessions.
+        </p>
+      </div>
 
-        <Popover open={open} onOpenChange={setOpen}>
+      {/* Date row */}
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200">
+          Workouts for{' '}
+          <span className="text-zinc-900 dark:text-zinc-50">
+            {format(selectedDate, 'do MMM yyyy')}
+          </span>
+        </h2>
+
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/workout/new">
+            <Button className="gap-2">
+              <PlusIcon className="h-4 w-4" />
+              Log Workout
+            </Button>
+          </Link>
+
+          <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" className="gap-2">
               <CalendarIcon className="h-4 w-4" />
@@ -65,47 +76,37 @@ export default function WorkoutView({ workouts, selectedDate }: Props) {
             />
           </PopoverContent>
         </Popover>
+        </div>
       </div>
 
       {workouts.length === 0 ? (
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          No workouts logged for this date.
-        </p>
+        <div className="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-700">
+          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+            No workouts logged for this date.
+          </p>
+          <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+            Log a workout to see it here.
+          </p>
+        </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {workouts.map((workout) => (
-            <Card key={workout.id}>
-              <CardHeader>
-                <CardTitle>{workout.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-5">
-                {workout.exercises.map((exercise) => (
-                  <div key={exercise.id}>
-                    <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      {exercise.name}
-                    </p>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-left text-xs text-zinc-500 dark:text-zinc-400">
-                          <th className="pb-1 pr-8 font-medium">Set</th>
-                          <th className="pb-1 pr-8 font-medium">Reps</th>
-                          <th className="pb-1 font-medium">Weight (kg)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {exercise.sets.map((set) => (
-                          <tr key={set.setNumber} className="text-zinc-800 dark:text-zinc-200">
-                            <td className="py-0.5 pr-8">{set.setNumber}</td>
-                            <td className="py-0.5 pr-8">{set.reps ?? '—'}</td>
-                            <td className="py-0.5">{set.weightKg ?? '—'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+            <Link key={workout.id} href={`/dashboard/workout/${workout.id}`}>
+              <Card className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer">
+                <CardContent className="flex items-center justify-between px-6 py-6">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                      {workout.name ?? 'Untitled workout'}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500">
+                      <ClockIcon className="h-3.5 w-3.5" />
+                      Logged at {format(workout.createdAt, 'h:mm a')}
+                    </span>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
+                  <ChevronRightIcon className="h-5 w-5 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

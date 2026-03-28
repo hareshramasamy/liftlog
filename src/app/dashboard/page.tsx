@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { getWorkoutsForUserByDate } from '@/data/workouts';
+import { getWorkoutSummariesByDate } from '@/data/workouts';
 import WorkoutView from './WorkoutView';
 
 type Props = {
@@ -23,7 +23,7 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   const selectedDate = dateParam ? parseDateParam(dateParam) : new Date();
 
-  const workouts = await getWorkoutsForUserByDate(userId, selectedDate);
+  const workouts = await getWorkoutSummariesByDate(userId, selectedDate);
 
   return <WorkoutView workouts={workouts} selectedDate={selectedDate} />;
 }

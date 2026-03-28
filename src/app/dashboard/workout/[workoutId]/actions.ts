@@ -2,9 +2,15 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { updateWorkout } from '@/data/workouts';
 import { format } from 'date-fns';
+import {
+  deleteWorkout,
+  removeExerciseFromWorkout,
+  updateExerciseSets,
+  addExerciseToWorkout,
+} from '@/data/workouts';
 
 const SetSchema = z.object({
   setNumber: z.number().int().positive(),
@@ -16,43 +22,71 @@ const SetSchema = z.object({
     }),
 });
 
-const ExerciseSchema = z.object({
-  exerciseId: z.string().min(1),
-  order: z.number().int().nonnegative(),
-  sets: z.array(SetSchema).min(1, 'Each exercise must have at least one set'),
-});
+export type ActionResult = { success: true } | { success: false; error: string };
 
-const UpdateWorkoutSchema = z.object({
-  workoutId: z.string().min(1),
-  name: z.string().min(1, 'Workout name is required').max(255),
-  exercises: z.array(ExerciseSchema).min(1, 'At least one exercise is required'),
-});
-
-export type UpdateWorkoutParams = z.input<typeof UpdateWorkoutSchema>;
-export type UpdateWorkoutResult =
-  | { success: true }
-  | { success: false; error: string };
-
-export async function updateWorkoutAction(
-  params: UpdateWorkoutParams,
-): Promise<UpdateWorkoutResult> {
+export async function deleteWorkoutAction(workoutId: string): Promise<void> {
   const { userId } = await auth();
-  if (!userId) {
-    return { success: false, error: 'Unauthenticated' };
-  }
+  if (!userId) redirect('/sign-in');
 
-  const parsed = UpdateWorkoutSchema.safeParse(params);
-  if (!parsed.success) {
-    const message = parsed.error.issues.map((i) => i.message).join(', ');
-    return { success: false, error: message || 'Invalid input' };
-  }
-
-  await updateWorkout(
-    userId,
-    parsed.data.workoutId,
-    parsed.data.name,
-    parsed.data.exercises,
-  );
-
+  await deleteWorkout(userId, workoutId);
   redirect(`/dashboard?date=${format(new Date(), 'yyyy-MM-dd')}`);
+}
+
+export async function removeExerciseAction(
+  workoutId: string,
+  workoutExerciseId: string,
+): Promise<ActionResult> {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: 'Unauthenticated' };
+
+  await removeExerciseFromWorkout(userId, workoutExerciseId);
+  revalidatePath(`/dashboard/workout/${workoutId}`);
+  return { success: true };
+}
+
+const UpdateSetsSchema = z.object({
+  workoutExerciseId: z.string().min(1),
+  sets: z.array(SetSchema).min(1, 'At least one set is required'),
+});
+
+export async function updateExerciseSetsAction(
+  params: z.input<typeof UpdateSetsSchema>,
+): Promise<ActionResult> {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: 'Unauthenticated' };
+
+  const parsed = UpdateSetsSchema.safeParse(params);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues.map((i) => i.message).join(', ') };
+  }
+
+  await updateExerciseSets(userId, parsed.data.workoutExerciseId, parsed.data.sets);
+  revalidatePath(`/dashboard/workout`);
+  return { success: true };
+}
+
+const AddExerciseSchema = z.object({
+  workoutId: z.string().min(1),
+  exerciseId: z.string().min(1),
+  sets: z.array(SetSchema).min(1, 'At least one set is required'),
+});
+
+export async function addExerciseAction(
+  params: z.input<typeof AddExerciseSchema>,
+): Promise<ActionResult> {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: 'Unauthenticated' };
+
+  const parsed = AddExerciseSchema.safeParse(params);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues.map((i) => i.message).join(', ') };
+  }
+
+  await addExerciseToWorkout(userId, parsed.data.workoutId, {
+    exerciseId: parsed.data.exerciseId,
+    sets: parsed.data.sets,
+  });
+
+  revalidatePath(`/dashboard/workout/${parsed.data.workoutId}`);
+  return { success: true };
 }

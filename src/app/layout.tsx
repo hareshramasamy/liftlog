@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider, SignInButton, SignUpButton, Show, UserButton } from "@clerk/nextjs";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -36,10 +37,10 @@ export default function RootLayout({
         <ClerkProvider>
           <ThemeProvider>
             <header className="sticky top-0 z-50 w-full border-b border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80">
-              <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-                <span className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+              <div className="mx-auto flex h-16 w-[55%] items-center justify-between">
+                <Link href="/dashboard" className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
                   LiftLog
-                </span>
+                </Link>
                 <div className="flex items-center gap-3">
                   <ThemeToggle />
                   <Show when="signed-out">
